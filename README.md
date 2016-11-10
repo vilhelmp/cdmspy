@@ -20,6 +20,8 @@ Then run
 
 # How?
 
+## Searching in frequency interval and for certain species
+
 Once in python import the functions with
 
     from cdmspy import cdmspy
@@ -45,6 +47,21 @@ this will return an Astropy Table with all the information on lines of isotopolo
 will pop-up a window with the results. The table also contains the Eu and El in Kelvin, instead of just cm-1. 
 
 
+
+## Get full line list of specific species
+
+Example usage
+
+    results = cdmspy.get_entry('032507 HDC-13-O')
+    results.show_in_browser()
+
+
+## Get partition function for specific species
+
+Example usage
+
+
+## TODO
 
 TODO: implement parsing of Astropy Units as intput.
 TODO: use molecular ID to get the partition function values and return a function to estimate it at temperature T.
