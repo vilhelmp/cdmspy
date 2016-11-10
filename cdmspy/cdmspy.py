@@ -23,39 +23,18 @@ mol_ids = mol_lists.T[0]
 mol_names = mol_lists.T[1]
 # now we can search
 
-# payload = dict(MinNu=200,
-#                MaxNu=230,
-#                UnitNu="GHz",
-#                StrLim=-10,
-#                Molecules="031501 HDCO",
-#                temp=0,output="text",
-#                sort="frequency",
-#                mol_sort_query="tag",
-#                logscale="yes",
-#                but_action="Submit")
-# postrequest = requests.post(FORMURL, data=payload)
-# postrequest.close()
-# soup = bs4.BeautifulSoup(postrequest.content, "lxml")
-# link = soup.find_all('a')[0].get('href')
-# newurl = urllib.parse.urljoin(BASEURL, link)
-# resultstable = requests.get(newurl)
-# resultstable.close()
-# newsoup = bs4.BeautifulSoup(resultstable.content, "lxml" )
-# asciitable = newsoup.find_all('pre')[0].get_text()
-
 def find_molecules(tofind, lim=0.8):
-    # remove "-" from
+    # remove "-" from each species name string
+    # this is to remove unecessary symbols before
+    # comparing the strings.
+    # TODO: What about species strings with
+    #"v=1" and similar in their name.
     ignore = lambda x: x == "-"
     scores = [SM(ignore,
                  tofind,
                  i.replace("-", "")).ratio() for i in mol_names]
     # score should be above 80% (i.e. 0.8) to qualify
     return np.array(molecules)[np.array(scores)>=lim]
-
-
-
-
-
 
 
 def query(freqs=None,
