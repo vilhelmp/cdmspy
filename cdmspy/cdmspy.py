@@ -13,11 +13,13 @@ FORMURL = urllib.parse.urljoin(BASEURL, "/cgi-bin/cdmssearch")
 
 # GET THE molecular line list
 # do this on import
-searchpage = requests.get(FORMURL)
-searchpage.close()
-searchform = bs4.BeautifulSoup(searchpage.content, "lxml")
-mollist_html = searchform.find_all("select")[0]
-molecules = [i for i in mollist_html.stripped_strings]
+# Temporary workaround: added "_" infront
+# of names to make hidden in namespace.
+_searchpage = requests.get(FORMURL)
+_searchpage.close()
+_searchform = bs4.BeautifulSoup(_searchpage.content, "lxml")
+_mollist_html = _searchform.find_all("select")[0]
+molecules = [i for i in _mollist_html.stripped_strings]
 mol_lists = np.array([[i[:6], i[7:]] for i in molecules])
 mol_ids = mol_lists.T[0]
 mol_names = mol_lists.T[1]
