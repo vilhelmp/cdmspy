@@ -10,6 +10,8 @@ import astropy.constants as c
 # define the base URLs to use
 BASEURL= "http://www.astro.uni-koeln.de"
 FORMURL = urllib.parse.urljoin(BASEURL, "/cgi-bin/cdmssearch")
+SPECIES_PAGE_URL = urllib.parse.urljoin(BASEURL, "/cgi-bin/cdmsinfo?file=")
+SPECIE_LIST_URL = urllib.parse.urljoin(BASEURL, "/cgi-bin/cdmssearch?file=")
 
 # GET THE molecular line list
 # do this on import
@@ -36,11 +38,21 @@ def find_molecules(tofind, lim=0.8):
                  tofind,
                  i.replace("-", "")).ratio() for i in mol_names]
     # score should be above 80% (i.e. 0.8) to qualify
+    # for some it is more difficult, for example
+    # "Propanediol" has different versions
+    # "aG'g-1,2-Propanediol", "gG'a-1,2-Propanediol
+    # etc that makes it more difficult.
+    # adjust lim to other value in that case.
     return np.array(molecules)[np.array(scores)>=lim]
 
 
 def query(freqs=None,
           molecules=None):
+
+    if freqs[1]-freqs[0]> 50.:
+        print('Wide frequency region queried.')
+        print('Do not overload the service!')
+        print('Only query single molecules this way.')
     payload = dict(MinNu=freqs[0],
                    MaxNu=freqs[1],
                    UnitNu="GHz",
@@ -62,9 +74,6 @@ def query(freqs=None,
     asciitable = newsoup.find_all('pre')[0].get_text()
     lines = parse_results_table(asciitable)
     return lines
-
-
-
 
 def parse_results_table(asciitable):
     cdms_colnames = (
@@ -92,3 +101,16 @@ def parse_results_table(asciitable):
     lines['eup_cm'] = (lines['eup'].quantity * c.k_B / (c.c * c.h)).decompose().to(1 / u.cm)
 
     return lines
+
+
+def get_part_function(molecule):
+    CATURL = SPECIES_PAGE_URL+'e{0}.cat'.format(molecule.split(' ')[0])
+    catpage = requests.get(CATURL)
+    catpage.close()
+    return catpage
+
+def get_entry(molecule):
+    MOLURL = SPECIE_LIST_URL+"c{0}.cat".format(molecule.split(' ')[0])
+    molpage = requests.get(CATURL)
+    molpage.close()
+    return molpage
