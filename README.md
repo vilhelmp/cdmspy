@@ -22,9 +22,9 @@ Then run
 
 ## Searching in frequency interval and for certain species
 
-Once in python import the functions with
+Once in python import the library with
 
-    from cdmspy import cdmspy
+    import cdmspy
 
 Then to search for a specific molecule you can use the built in function to get the IDs etc.
 
@@ -52,6 +52,7 @@ will pop-up a window with the results. The table also contains the Eu and El in 
 
 Example usage
 
+    import cdmspy
     results = cdmspy.get_entry('032507 HDC-13-O')
     results.show_in_browser()
 
