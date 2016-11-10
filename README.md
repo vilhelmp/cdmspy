@@ -20,11 +20,13 @@ Then run
 
 # How?
 
-## Searching in frequency interval and for certain species
 
 Once in python import the library with
 
     import cdmspy
+
+
+## Searching in frequency interval and for certain species
 
 Then to search for a specific molecule you can use the built in function to get the IDs etc.
 
