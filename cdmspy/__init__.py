@@ -1,2 +1,2 @@
-from . import cdmspy
+from .cdmspy import *
 __all__ = ["cdmspy"]

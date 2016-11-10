@@ -73,13 +73,18 @@ def query(freqs=None,
     newsoup = bs4.BeautifulSoup(resultstable.content, "lxml")
     asciitable = newsoup.find_all('pre')[0].get_text()
     lines = parse_results_table(asciitable)
+    lines.meta['source'] = newurl
     return lines
 
-def parse_results_table(asciitable):
-    cdms_colnames = (
-    'freq_rest', 'freqerr', 'aij', 'dofrot', 'elow_cm', 'gup', 'tag', 'qenq', 'qnum1', 'qnum2', 'species')
-    # (F13.4,F8.4, F8.4,  I2,F10.4,  I3,  I7,    I4,  6I2,  6I2)
-    cdms_colstarts = (0, 13, 24, 35, 37, 47, 50, 57, 61, 72, 89)
+def parse_results_table(asciitable,
+                        cdms_colnames=(
+                                'freq_rest', 'freqerr',
+                                'aij', 'dofrot',
+                                'elow_cm', 'gup',
+                                'tag', 'qenq', 'qnum1',
+                                'qnum2', 'species'),
+                        cdms_colstarts = (0, 13, 24, 35, 37, 47, 50, 57, 61, 72, 89),
+                        ):
     lines = Table.read(asciitable,
                        format='ascii.fixed_width_no_header',
                        names=cdms_colnames,
@@ -111,6 +116,15 @@ def get_part_function(molecule):
 
 def get_entry(molecule):
     MOLURL = SPECIE_LIST_URL+"c{0}.cat".format(molecule.split(' ')[0])
-    molpage = requests.get(CATURL)
+    molpage = requests.get(MOLURL)
     molpage.close()
-    return molpage
+    molpage = bs4.BeautifulSoup(molpage.content, "lxml")
+    link = molpage.find_all('a')[0].get('href')
+    newurl = urllib.parse.urljoin(BASEURL, link)
+    resultstable = requests.get(newurl)
+    newsoup = bs4.BeautifulSoup(resultstable.content, "lxml")
+    asciitable = newsoup.find_all('pre')[0].get_text()
+    lines = parse_results_table(asciitable,
+                                cdms_colstarts=(0, 13, 21, 29, 31, 41, 44, 51, 56, 61, 73))
+    lines.meta['source'] = newurl
+    return lines
