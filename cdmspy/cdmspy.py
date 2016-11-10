@@ -45,37 +45,6 @@ def find_molecules(tofind, lim=0.8):
     # adjust lim to other value in that case.
     return np.array(molecules)[np.array(scores)>=lim]
 
-
-def query(freqs=None,
-          molecules=None):
-
-    if freqs[1]-freqs[0]> 50.:
-        print('Wide frequency region queried.')
-        print('Do not overload the service!')
-        print('Only query single molecules this way.')
-    payload = dict(MinNu=freqs[0],
-                   MaxNu=freqs[1],
-                   UnitNu="GHz",
-                   StrLim=-10,
-                   Molecules=molecules,
-                   temp=0, output="text",
-                   sort="frequency",
-                   mol_sort_query="tag",
-                   logscale="yes",
-                   but_action="Submit")
-    postrequest = requests.post(FORMURL, data=payload)
-    postrequest.close()
-    soup = bs4.BeautifulSoup(postrequest.content, "lxml")
-    link = soup.find_all('a')[0].get('href')
-    newurl = urllib.parse.urljoin(BASEURL, link)
-    resultstable = requests.get(newurl)
-    resultstable.close()
-    newsoup = bs4.BeautifulSoup(resultstable.content, "lxml")
-    asciitable = newsoup.find_all('pre')[0].get_text()
-    lines = parse_results_table(asciitable)
-    lines.meta['source'] = newurl
-    return lines
-
 def parse_results_table(asciitable,
                         cdms_colnames=(
                                 'freq_rest', 'freqerr',
@@ -108,11 +77,60 @@ def parse_results_table(asciitable,
     return lines
 
 
+def query(freqs=None,
+          molecules=None):
+
+    if freqs[1]-freqs[0]> 50.:
+        print('Wide frequency region queried.')
+        print('Do not overload the service!')
+        print('Only query single molecules this way.')
+    payload = dict(MinNu=freqs[0],
+                   MaxNu=freqs[1],
+                   UnitNu="GHz",
+                   StrLim=-10,
+                   Molecules=molecules,
+                   temp=0, output="text",
+                   sort="frequency",
+                   mol_sort_query="tag",
+                   logscale="yes",
+                   but_action="Submit")
+    postrequest = requests.post(FORMURL, data=payload)
+    postrequest.close()
+    soup = bs4.BeautifulSoup(postrequest.content, "lxml")
+    link = soup.find_all('a')[0].get('href')
+    newurl = urllib.parse.urljoin(BASEURL, link)
+    resultstable = requests.get(newurl)
+    resultstable.close()
+    newsoup = bs4.BeautifulSoup(resultstable.content, "lxml")
+    asciitable = newsoup.find_all('pre')[0].get_text()
+    lines = parse_results_table(asciitable)
+    lines.meta['source'] = newurl
+    return lines
+
+
+
 def get_part_function(molecule):
     CATURL = SPECIES_PAGE_URL+'e{0}.cat'.format(molecule.split(' ')[0])
     catpage = requests.get(CATURL)
     catpage.close()
-    return catpage
+    cathtml = bs4.BeautifulSoup(catpage.content, "lxml")
+    parttable = [i for i in cathtml.find_all('tr') if i.get_text()[1:3] == 'Q(']
+    parttable = [[j.get_text() for j in i.find_all('td')] for i in parttable]
+    # extract partition function value and Temperature
+    T, value = np.array(parttable).T
+    # convert values into floats
+    value = value.astype('float')
+    # convert temperature to floats
+    T = np.array([float(i[3:-1]) for i in T])
+
+    return_table = Table()
+    return_table['temp'] = T
+    return_table['part_value'] = value
+    return_table.meta['species'] = molecule.split(' ')[1]
+    return_table.meta['source'] = CATURL
+    return_table.meta['source_html'] = cathtml
+
+    return return_table
 
 def get_entry(molecule):
     MOLURL = SPECIE_LIST_URL+"c{0}.cat".format(molecule.split(' ')[0])
