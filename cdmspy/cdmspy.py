@@ -41,8 +41,8 @@ def find_molecules(tofind, lim=0.8):
 
 def query(freqs=None,
           molecules=None):
-    payload = dict(MinNu=200,
-                   MaxNu=230,
+    payload = dict(MinNu=freqs[0],
+                   MaxNu=freqs[1],
                    UnitNu="GHz",
                    StrLim=-10,
                    Molecules=molecules,
