@@ -9,6 +9,9 @@ http://www.astro.uni-koeln.de/cdms
 
 The CDMS web interface is allways updated first. Any changes to their database goes directly into the web search. The VAMDC database takes a couple of weeks to update.
 
+# Requirements
+
+   requests, bs4, numpy, astropy
 
 # Install
 
