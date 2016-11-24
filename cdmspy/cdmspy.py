@@ -118,8 +118,16 @@ def get_part_function(molecule):
     parttable = [[j.get_text() for j in i.find_all('td')] for i in parttable]
     # extract partition function value and Temperature
     T, value = np.array(parttable).T
-    # convert values into floats
-    value = value.astype('float')
+    try:
+        # convert values into floats
+        value = value.astype('float')
+    except(ValueError):
+        # if its a value error, it could be
+        # that the table consists of two values
+        # like "2521.8958 (2141.5366, 380.3592)"
+        # e.g. for D2CO (as of 2016-11-14)
+        value = [str(i).split(" ")[0] for i in value]
+        value = np.array(value, dtype='float')
     # convert temperature to floats
     T = np.array([float(i[3:-1]) for i in T])
 
