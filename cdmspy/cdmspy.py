@@ -31,8 +31,7 @@ def find_molecules(tofind, lim=0.8):
     # remove "-" from each species name string
     # this is to remove unecessary symbols before
     # comparing the strings.
-    # TODO: What about species strings with
-    #"v=1" and similar in their name.
+    # TODO: What about species strings with "v=1" and similar in their name.
     ignore = lambda x: x == "-"
     scores = [SM(ignore,
                  tofind,
@@ -62,6 +61,7 @@ def parse_results_table(asciitable,
     # give out some units in one go, so that we don't run it twice on the same table
     lines['freq_rest'] = lines['freq_rest'] * 1e-3
     lines['freq_rest'].unit = u.GHz
+    #TODO: the error is not always in GHz check CDMS for more info, and how to fix.
     lines['freqerr'] = lines['freqerr'] * 1e-3
     lines['freqerr'].unit = u.GHz
 
@@ -109,7 +109,9 @@ def query(freqs=None,
 
 
 
-def get_part_function(molecule):
+def get_part_function(molecule, interp=False, order=2):
+    # if fit=True the function will return
+    # a function fitted to the values
     CATURL = SPECIES_PAGE_URL+'e{0}.cat'.format(molecule.split(' ')[0])
     catpage = requests.get(CATURL)
     catpage.close()
@@ -134,13 +136,47 @@ def get_part_function(molecule):
     return_table = Table()
     return_table['temp'] = T
     return_table['part_value'] = value
+    return_table = return_table[return_table.argsort(keys='temp')]
     return_table.meta['species'] = molecule.split(' ')[1]
     return_table.meta['source'] = CATURL
     return_table.meta['source_html'] = cathtml
 
+    # now if we want to fit a function to the values
+    if interp:
+        from scipy.interpolate import InterpolatedUnivariateSpline
+        qrot = InterpolatedUnivariateSpline(return_table['temp'], return_table['part_value'], k=order)
+        return return_table, qrot
     return return_table
 
-def get_entry(molecule):
+def get_entry(molecule, dbg=False):
+
+    """
+    NOTES for some stuff to do/convert/think about:
+    Frequency of the line (usually in MHz, can be in cm–1; see below);
+    uncertainty of the line (usually in MHz, can be in cm–1; see below);
+    base 10 logarithm of the integrated intensity at 300 K (in nm2MHz);
+    degree of freedom in the rotational partition function (0 for atoms,
+    2 for linear molecules, and 3 for non-linear molecules; lower state
+    energy (in cm–1); upper state degeneracy gup; molecule tag (see below)
+    a negative value indicates that both line frequency and uncertainty
+    are experimental values; coding of the quantum numbers; and finally
+    the quantum numbers.
+
+    The intensity calculation can be found here:
+    http://www.astro.uni-koeln.de/sites/default/files/cdms/CDMS_AA.pdf
+    Eq. 1.
+
+
+    *The line position and its uncertainty are either in units of MHz,
+    namely if the uncertainty of the line is greater or equal to zero;
+    or the units are in cm–1, namely if the uncertainty of the line is
+    less or equal to zero!*
+
+
+    :param molecule:
+    :param dbg:
+    :return:
+    """
     MOLURL = SPECIE_LIST_URL+"c{0}.cat".format(molecule.split(' ')[0])
     molpage = requests.get(MOLURL)
     molpage.close()
@@ -151,6 +187,14 @@ def get_entry(molecule):
     newsoup = bs4.BeautifulSoup(resultstable.content, "lxml")
     asciitable = newsoup.find_all('pre')[0].get_text()
     lines = parse_results_table(asciitable,
-                                cdms_colstarts=(0, 13, 21, 29, 31, 41, 44, 51, 56, 61, 73))
-    lines.meta['source'] = newurl
+                                cdms_colstarts=(0, 13, 21, 29, 31, 41, 44, 51, 55, 61, 73),
+                                names=('freq_rest', 'freqerr', 'cdms_intensity',
+                                       'dofrot', 'elow_cm','gup','tag', 'qenq',
+                                       'qnum1', 'qnum2','species'),
+                                )
+    lines.meta['source'] = MOLURL
+    lines.meta['table_source'] = newurl
+    lines.meta['specie'] = molecule.split(' ')[1]
+    if dbg:
+        return lines, asciitable, newsoup
     return lines
