@@ -7,6 +7,17 @@ from astropy.table import Table
 import astropy.units as u
 import astropy.constants as c
 
+
+
+#TODO: Add calculations for:
+"""
+CDMS intensity
+# Aij = intens *freq**2 qrot(300K)/gup * (8pi/c**2)/(exp(-El/300K) - exp(-Eu/300K))
+# intens = Aij/freq**2 * (exp(-El/300K) - exp(-Eu/300K))*gup/qrot(300K) * c**2/(8pi)
+
+"""
+
+
 # define the base URLs to use
 BASEURL= "http://www.astro.uni-koeln.de"
 FORMURL = urllib.parse.urljoin(BASEURL, "/cgi-bin/cdmssearch")
@@ -73,7 +84,9 @@ def parse_results_table(asciitable,
     # calculate the E_up (in Kelvin) from the E_low (in Kelvin)
     lines['eup'] = lines['elow'] + ((c.h * lines['freq_rest'].quantity) / c.k_B).decompose()
     lines['eup_cm'] = (lines['eup'].quantity * c.k_B / (c.c * c.h)).decompose().to(1 / u.cm)
-
+    lines['log10_aij'] = lines['aij'].copy()
+    lines['aij'] = 10**lines['log10_aij']
+    lines['aij'].unit = 1/u.s
     return lines
 
 
@@ -194,7 +207,7 @@ def get_entry(molecule, dbg=False):
                                 )
     lines.meta['source'] = MOLURL
     lines.meta['table_source'] = newurl
-    lines.meta['specie'] = molecule.split(' ')[1]
+    lines.meta['species'] = molecule.split(' ')[1]
     if dbg:
         return lines, asciitable, newsoup
     return lines
